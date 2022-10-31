@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace EsemkaOnePlus.Controllers
 {
@@ -23,24 +24,27 @@ namespace EsemkaOnePlus.Controllers
         [Authorize]
         public async Task<IActionResult> GetUser()
         {
-            var customer = await dbContext.Customers.Where(c => c.Email == User.FindFirstValue(ClaimTypes.Email)).FirstOrDefaultAsync();
-
-            if (customer == null)
+            var customerResponse = await (from c in dbContext.Customers
+                                          join l in dbContext.Loyalties
+                                          on c.LoyaltyId equals l.Id
+                                          where c.Email == User.FindFirstValue(ClaimTypes.Email)
+                                          select new
+                                          {
+                                              email = c.Email,
+                                              name = c.Name,
+                                              gender = c.Gender == 0 ? "Laki-laki" : "Perempuan",
+                                              dateOfBirth = c.DateOfBirth,
+                                              phoneNumber = c.PhoneNumber,
+                                              address = c.Address,
+                                              loyaltyName = l.Name,
+                                              Point = c.TotalPoint
+                                          }).FirstOrDefaultAsync();
+            if (customerResponse == null)
             {
                 return Unauthorized();
             }
 
-            CustomerResponse response = new CustomerResponse()
-            {
-                name = customer.Name,
-                email = customer.Email,
-                gender = customer.Gender,
-                dateOfBirth = customer.DateOfBirth,
-                phoneNumber = customer.PhoneNumber,
-                address = customer.Address,
-            };
-
-            return Ok(response);
+            return Ok(customerResponse);
         }
 
         [HttpPut]
@@ -63,17 +67,23 @@ namespace EsemkaOnePlus.Controllers
 
             await dbContext.SaveChangesAsync();
 
-            CustomerResponse response = new CustomerResponse()
-            {
-                name = customer.Name,
-                email = customer.Email,
-                gender = customer.Gender,
-                dateOfBirth = customer.DateOfBirth,
-                phoneNumber = customer.PhoneNumber,
-                address = customer.Address,
-            };
+            var customerResponse = await (from c in dbContext.Customers
+                                          join l in dbContext.Loyalties
+                                          on c.LoyaltyId equals l.Id
+                                          where c.Id == customer.Id
+                                          select new
+                                          {
+                                              email = c.Email,
+                                              name = c.Name,
+                                              gender = c.Gender == 0 ? "Laki-laki" : "Perempuan",
+                                              dateOfBirth = c.DateOfBirth,
+                                              phoneNumber = c.PhoneNumber,
+                                              address = c.Address,
+                                              loyaltyName = l.Name,
+                                              Point = c.TotalPoint
+                                          }).FirstOrDefaultAsync();
 
-            return Ok(response);
+            return Ok(customerResponse);
         }
 
         [HttpPost("Photo")]
@@ -88,12 +98,25 @@ namespace EsemkaOnePlus.Controllers
                 return Unauthorized();
             }
 
-            if (!Directory.Exists(path))
+            if (postPhotoRequest.fromFile.FileName != null)
             {
-                Directory.CreateDirectory(path);
+                if (!Directory.Exists(path))
+                {
+                    Directory.CreateDirectory(path);
+                }
+
+                string imageFileName = DateTime.Now.Ticks.ToString() + postPhotoRequest.fromFile.FileName;
+                using (FileStream fileStream = System.IO.File.Create(path + imageFileName))
+                {
+                    postPhotoRequest.fromFile.CopyTo(fileStream);
+                    await fileStream.FlushAsync();
+
+                    customer.PhotoPath = imageFileName;
+                    await dbContext.SaveChangesAsync();
+                }
             }
 
-            
+
 
             return Ok();
         }

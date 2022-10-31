@@ -1,6 +1,6 @@
 ﻿namespace EsemkaOnePlus.Request
 {
-    public class CreateCustomer
+    public class CreateCustomerRequest
     {
         public int id { get; set; }
         public string email { get; set; }

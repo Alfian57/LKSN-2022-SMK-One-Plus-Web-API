@@ -10,7 +10,6 @@
         public int limit { get; set; }
         public DateTime activatedAt { get; set; }
         public DateTime expiredAt { get; set; }
-        public DateTime createdAt { get; set; }
 
     }
 }

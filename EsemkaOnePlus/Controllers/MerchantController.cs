@@ -1,4 +1,4 @@
-﻿using EsemkaOnePlus.Data;
+﻿    using EsemkaOnePlus.Data;
 using EsemkaOnePlus.Request;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -22,25 +22,17 @@ namespace EsemkaOnePlus.Controllers
         [Authorize]
         public async Task<IActionResult> GetMerchant()
         {
-            var merchantList = new List<MerchantResponse>();
-            var merchants = await dbContext.Merchants.OrderBy(m => m.Location).ToListAsync();
+            var merchants = await (from m in dbContext.Merchants
+                                   orderby m.Location, m.Name
+                                   select new { 
+                                       id = m.Id,
+                                       name = m.Name,
+                                       description = m.Description,
+                                       location = m.Location,
+                                       multiplier = m.Multiplier,
+                                   }).ToListAsync();
 
-            merchants = merchants.OrderByDescending(m => m.Name).ToList();
-
-            foreach (var merchant in merchants)
-            {
-                MerchantResponse item = new MerchantResponse()
-                {
-                    id = merchant.Id,
-                    name = merchant.Name,
-                    description = merchant.Description,
-                    location = merchant.Location,
-                    multiplier = merchant.Multiplier
-                };
-                merchantList.Add(item);
-            }
-
-            return Ok(merchantList);
+            return Ok(merchants);
         }
 
         [HttpPost]
@@ -59,7 +51,20 @@ namespace EsemkaOnePlus.Controllers
 
             await dbContext.AddAsync(merchant);
             await dbContext.SaveChangesAsync();
-            return Ok(merchant);
+
+            var merchantResponse = await (from m in dbContext.Merchants
+                                   orderby m.Location, m.Name
+                                   where m.Id == merchant.Id
+                                   select new
+                                   {
+                                       id = m.Id,
+                                       name = m.Name,
+                                       description = m.Description,
+                                       location = m.Location,
+                                       multiplier = m.Multiplier,
+                                   }).FirstOrDefaultAsync();
+
+            return Ok(merchantResponse);
         }
 
         [HttpPut()]
@@ -81,7 +86,20 @@ namespace EsemkaOnePlus.Controllers
             merchant.CreatedAt = request.createdAt;
 
             await dbContext.SaveChangesAsync();
-            return Ok(merchant);
+
+            var merchantResponse = await (from m in dbContext.Merchants
+                                          orderby m.Location, m.Name
+                                          where m.Id == merchant.Id
+                                          select new
+                                          {
+                                              id = m.Id,
+                                              name = m.Name,
+                                              description = m.Description,
+                                              location = m.Location,
+                                              multiplier = m.Multiplier,
+                                          }).FirstOrDefaultAsync();
+
+            return Ok(merchantResponse);
         }
 
         [HttpDelete("{id}")]
@@ -95,9 +113,21 @@ namespace EsemkaOnePlus.Controllers
                 return NotFound();
             }
 
+            var merchantResponse = await (from m in dbContext.Merchants
+                                          orderby m.Location, m.Name
+                                          where m.Id == merchant.Id
+                                          select new
+                                          {
+                                              id = m.Id,
+                                              name = m.Name,
+                                              description = m.Description,
+                                              location = m.Location,
+                                              multiplier = m.Multiplier,
+                                          }).FirstOrDefaultAsync();
+
             dbContext.Merchants.Remove(merchant);
 
-            return Ok(merchant);
+            return Ok(merchantResponse);
         }
 
     }

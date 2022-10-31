@@ -23,53 +23,60 @@ namespace EsemkaOnePlus.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetCustomer(string filter)
         {
-            List<CustomerResponse> customerResponses = new List<CustomerResponse>();
-            var customers = await dbContext.Customers
-                .ToListAsync();
+            var customers = await (from c in dbContext.Customers
+                                   join l in dbContext.Loyalties
+                                   on c.LoyaltyId equals l.Id
+                                   orderby c.Name, c.Email ascending
+                                   select new {
+                                       email = c.Email,
+                                       name = c.Name,
+                                       gender = c.Gender == 0 ? "Laki-laki" : "Perempuan",
+                                       dateOfBirth = c.DateOfBirth,
+                                       phoneNumber = c.PhoneNumber,
+                                       address = c.Address,
+                                       loyaltyName = l.Name,
+                                       Point = c.TotalPoint
+                                   }).ToListAsync();
 
-            customers = customers.Where(c => c.Email.Contains(filter) | c.PhoneNumber.Contains(filter) | c.Address.Contains(filter)).ToList();
-            customers.OrderBy(c => c.Name).ToList();
 
-            foreach(var customer in customers)
+            if (filter != null)
             {
-                CustomerResponse customerResponse = new CustomerResponse();
-                customerResponse.name = customer.Name;
-                customerResponse.email = customer.Email;
-                customerResponse.gender = customer.Gender;
-                customerResponse.dateOfBirth = customer.DateOfBirth;
-                customerResponse.phoneNumber = customer.PhoneNumber;
-                customerResponse.address = customer.Address;
-
-                customerResponses.Add(customerResponse);
+                customers = customers.Where(c => c.email.Contains(filter) | c.name.Contains(filter) | c.phoneNumber.Contains(filter) | c.address.Contains(filter)).ToList();
             }
 
-            return Ok(customerResponses);
+            return Ok(customers);
         }
 
         [HttpGet("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateCustoer([FromRoute] int id)
         {
-            var customer = await dbContext.Customers.Where(c => c.Id == id).FirstOrDefaultAsync();
+            var customer = await (from c in dbContext.Customers
+                                   join l in dbContext.Loyalties
+                                   on c.LoyaltyId equals l.Id
+                                   where c.Id == id
+                                   select new
+                                   {
+                                       email = c.Email,
+                                       name = c.Name,
+                                       gender = c.Gender == 0 ? "Laki-laki" : "Perempuan",
+                                       dateOfBirth = c.DateOfBirth,
+                                       phoneNumber = c.PhoneNumber,
+                                       address = c.Address,
+                                       loyaltyName = l.Name,
+                                       Point = c.TotalPoint
+                                   }).FirstOrDefaultAsync();
             if (customer == null)
             {
                 return NotFound();
             }
 
-            CustomerResponse customerResponse = new CustomerResponse();
-            customerResponse.name = customer.Name;
-            customerResponse.email = customer.Email;
-            customerResponse.gender = customer.Gender;
-            customerResponse.dateOfBirth = customer.DateOfBirth;
-            customerResponse.phoneNumber = customer.PhoneNumber;
-            customerResponse.address = customer.Address;
-
-            return Ok(customerResponse);
+            return Ok(customer);
         }
 
         [HttpPost]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> CreateCustoer(CreateCustomer request)
+        public async Task<IActionResult> CreateCustoer(CreateCustomerRequest request)
         {
             Customer customer = new Customer();
             var loyalty = await dbContext.Loyalties.Where(l => l.Id == request.loyaltyId).FirstOrDefaultAsync();
@@ -104,20 +111,28 @@ namespace EsemkaOnePlus.Controllers
             await dbContext.AddAsync(customer);
             await dbContext.SaveChangesAsync();
 
-            CustomerResponse customerResponse = new CustomerResponse();
-            customerResponse.name = customer.Name;
-            customerResponse.email = customer.Email;
-            customerResponse.gender = customer.Gender;
-            customerResponse.dateOfBirth = customer.DateOfBirth;
-            customerResponse.phoneNumber = customer.PhoneNumber;
-            customerResponse.address = customer.Address;
+            var customerResponse = await (from c in dbContext.Customers
+                                  join l in dbContext.Loyalties
+                                  on c.LoyaltyId equals l.Id
+                                  where c.Id == customer.Id
+                                  select new
+                                  {
+                                      email = c.Email,
+                                      name = c.Name,
+                                      gender = c.Gender == 0 ? "Laki-laki" : "Perempuan",
+                                      dateOfBirth = c.DateOfBirth,
+                                      phoneNumber = c.PhoneNumber,
+                                      address = c.Address,
+                                      loyaltyName = l.Name,
+                                      Point = c.TotalPoint
+                                  }).FirstOrDefaultAsync();
 
             return Ok(customerResponse);
         }
 
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> EditCustomer(CreateCustomer request, [FromRoute] int id)
+        public async Task<IActionResult> EditCustomer(CreateCustomerRequest request, [FromRoute] int id)
         {
             var customer = await dbContext.Customers.Where(c => c.Id == id).FirstOrDefaultAsync();
             var loyalty = await dbContext.Loyalties.Where(l => l.Id == request.loyaltyId).FirstOrDefaultAsync();
@@ -154,13 +169,21 @@ namespace EsemkaOnePlus.Controllers
 
             await dbContext.SaveChangesAsync();
 
-            CustomerResponse customerResponse = new CustomerResponse();
-            customerResponse.name = customer.Name;
-            customerResponse.email = customer.Email;
-            customerResponse.gender = customer.Gender;
-            customerResponse.dateOfBirth = customer.DateOfBirth;
-            customerResponse.phoneNumber = customer.PhoneNumber;
-            customerResponse.address = customer.Address;
+            var customerResponse = await (from c in dbContext.Customers
+                                          join l in dbContext.Loyalties
+                                          on c.LoyaltyId equals l.Id
+                                          where c.Id == customer.Id
+                                          select new
+                                          {
+                                              email = c.Email,
+                                              name = c.Name,
+                                              gender = c.Gender == 0 ? "Laki-laki" : "Perempuan",
+                                              dateOfBirth = c.DateOfBirth,
+                                              phoneNumber = c.PhoneNumber,
+                                              address = c.Address,
+                                              loyaltyName = l.Name,
+                                              Point = c.TotalPoint
+                                          }).FirstOrDefaultAsync();
 
             return Ok(customerResponse);
         }

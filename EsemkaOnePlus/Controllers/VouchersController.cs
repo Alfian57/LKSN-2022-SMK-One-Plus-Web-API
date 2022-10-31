@@ -23,28 +23,22 @@ namespace EsemkaOnePlus.Controllers
         [Authorize]
         public async Task<IActionResult> GetVoucher()
         {
-            List<VoucherResponse> responses = new List<VoucherResponse>();
+            var vouchers = await (from v in dbContext.Vouchers
+                                  orderby v.Code ascending
+                                  select new
+                                  {
+                                      id = v.Id,
+                                      code = v.Code,
+                                      name = v.Name,
+                                      description = v.Description,
+                                      cost = v.Cost,
+                                      limit = v.Limit,
+                                      activatedAt = v.ActivatedAt,
+                                      expiredAt = v.ExpiredAt,
+                                  }).ToListAsync();
 
-            var vouchers = await dbContext.Vouchers.ToListAsync();
 
-            vouchers = vouchers.OrderByDescending(v => v.Code).ToList();
-
-            foreach (var voucher in vouchers)
-            {
-                VoucherResponse  response = new VoucherResponse();
-                response.code = voucher.Code;
-                response.name = voucher.Name;
-                response.description = voucher.Description;
-                response.cost = voucher.Cost;
-                response.limit = voucher.Limit;
-                response.activatedAt = voucher.ActivatedAt;
-                response.expiredAt = voucher.ExpiredAt;
-                response.createdAt = voucher.CreatedAt;
-
-                responses.Add(response);
-            }
-
-            return Ok(responses);
+            return Ok(vouchers);
         }
 
         [HttpPost]
@@ -60,11 +54,26 @@ namespace EsemkaOnePlus.Controllers
             voucher.Limit = request.limit;
             voucher.ActivatedAt = request.activatedAt;
             voucher.ExpiredAt = request.expiredAt;
-            voucher.CreatedAt = request.createdAt;
-
+            voucher.CreatedAt = DateTime.Now;
 
             await dbContext.AddAsync(voucher);
             await dbContext.SaveChangesAsync();
+
+            var voucherResponse = await (from v in dbContext.Vouchers
+                                  orderby v.Code ascending
+                                  where v.Id == voucher.Id
+                                  select new
+                                  {
+                                      id = v.Id,
+                                      code = v.Code,
+                                      name = v.Name,
+                                      description = v.Description,
+                                      cost = v.Cost,
+                                      limit = v.Limit,
+                                      activatedAt = v.ActivatedAt,
+                                      expiredAt = v.ExpiredAt,
+                                  }).FirstOrDefaultAsync();
+
             return Ok(voucher);
         }
 
@@ -86,10 +95,25 @@ namespace EsemkaOnePlus.Controllers
             voucher.Limit = request.limit;
             voucher.ActivatedAt = request.activatedAt;
             voucher.ExpiredAt = request.expiredAt;
-            voucher.CreatedAt = request.createdAt;
 
             await dbContext.SaveChangesAsync();
-            return Ok(voucher);
+
+            var voucherResponse = await (from v in dbContext.Vouchers
+                                         orderby v.Code ascending
+                                         where v.Id == voucher.Id
+                                         select new
+                                         {
+                                             id = v.Id,
+                                             code = v.Code,
+                                             name = v.Name,
+                                             description = v.Description,
+                                             cost = v.Cost,
+                                             limit = v.Limit,
+                                             activatedAt = v.ActivatedAt,
+                                             expiredAt = v.ExpiredAt,
+                                         }).FirstOrDefaultAsync();
+
+            return Ok(voucherResponse);
         }
     }
 }

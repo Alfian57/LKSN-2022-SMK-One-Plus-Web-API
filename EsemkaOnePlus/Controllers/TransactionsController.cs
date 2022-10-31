@@ -22,23 +22,24 @@ namespace EsemkaOnePlus.Controllers
 
         [HttpGet]
         [Authorize]
-        public async Task<IActionResult> GetTransaction()
+        public async Task<IActionResult> GetTransaction(string filter)
         {
             var transactions = await (from t in dbContext.Transactions
                                       join c in dbContext.Customers
                                       on t.CustomerId equals c.Id
                                       join m in dbContext.Merchants
                                       on t.MerchantId equals m.Id
+                                      orderby t.TransactionDate ascending
                                       select new {
-                                        CustomerName = c.Name,
-                                        MerchantName = m.Name,
-                                        TransactionDate = t.TransactionDate,
-                                        Price = t.Price,
-                                        Point = t.Point
+                                        customerName = c.Name,
+                                        merchantName = m.Name,
+                                        transactionDate = t.TransactionDate,
+                                        price = t.Price,
+                                        point = t.Point
                                       }
                                       ).ToListAsync();
 
-            transactions = transactions.OrderByDescending(t => t.TransactionDate).ToList();
+            transactions = transactions.Where(t => t.customerName.Contains(filter) && t.merchantName.Contains(filter)).ToList();
 
             return Ok(transactions);
         }
